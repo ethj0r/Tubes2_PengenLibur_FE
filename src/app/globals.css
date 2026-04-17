@@ -122,3 +122,34 @@ html, body {
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border-left: 1px solid var(--border);
 }
+
+/* ---------- DOM node ---------- */
+.dom-node {
+  background: linear-gradient(180deg, #222 0%, #1a1a1a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  transition: border-color .18s ease, box-shadow .18s ease;
+  will-change: border-color, box-shadow;
+}
+.dom-node.is-visited {
+  border-color: rgba(3, 103, 252, 0.55);
+  box-shadow: 0 0 0 1px rgba(3,103,252,0.15), 0 0 16px -6px rgba(3,103,252,0.45);
+}
+.dom-node.is-matched {
+  border-color: rgba(210, 248, 1, 0.75);
+  box-shadow: 0 0 0 1px rgba(210,248,1,0.18), 0 0 18px -4px rgba(210,248,1,0.45);
+}
+
+/* ---------- Ghost icon button ---------- */
+.btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px;
+  background: transparent; border: 1px solid transparent;
+  color: rgba(255,255,255,0.55); cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+/* ---------- Edge flow animation ---------- */
+@keyframes dash { to { stroke-dashoffset: -20; } }
+.edge-flow { stroke-dasharray: 4 4; animation: dash 1.2s linear infinite; }

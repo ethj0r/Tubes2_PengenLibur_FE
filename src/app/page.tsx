@@ -1,4 +1,28 @@
+import Canvas from "./components/playground/Canvas";
+import { INITIAL_NODES, MATCHES, TRAVERSAL_ORDER } from "./components/playground/mockData";
+import type { DomNode, LogEntry } from "./components/playground/types";
+
 export default function PlaygroundLayout() {
+  const nodes: DomNode[] = INITIAL_NODES.map(node => {
+    if (MATCHES.has(node.id)) {
+      return { ...node, state: "matched" };
+    }
+    if (TRAVERSAL_ORDER.includes(node.id)) {
+      return { ...node, state: "visited" };
+    }
+    return node;
+  });
+
+  const nodeById: Record<string, DomNode> = Object.fromEntries(
+    nodes.map(node => [node.id, node])
+  );
+
+  const log: LogEntry[] = TRAVERSAL_ORDER.map((id, index) => ({
+    step: index + 1,
+    id,
+    matched: MATCHES.has(id),
+  }));
+
   return (
     <div className="app-shell">
       <aside className="app-rail flex flex-col items-center py-4 border-r border-white/5 bg-[#141414]">
@@ -24,20 +48,7 @@ export default function PlaygroundLayout() {
           <div className="text-xs text-white/40">Layout draft</div>
         </header>
 
-        <section className="app-canvas relative overflow-hidden">
-          <div
-            className="absolute inset-0 opacity-30 pointer-events-none"
-            style={{
-              backgroundImage: "radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px)",
-              backgroundSize: "24px 24px",
-            }}
-          />
-          <div className="relative p-6">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-white/60">
-              Canvas area
-            </div>
-          </div>
-        </section>
+        <Canvas nodes={nodes} nodeById={nodeById} log={log} />
       </main>
 
       <aside className="panel-right app-panel">
