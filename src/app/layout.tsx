@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "PengenLibur",
-  description: "App for traversing DOM Tree using BFS and DFS",
+  description: "App for traversing DOM Tree using BFS and DFS built for IF2211 Algorithm Strategy course at ITB.",
   icons: {
     icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E🌲%3C/text%3E%3C/svg%3E",
   },
