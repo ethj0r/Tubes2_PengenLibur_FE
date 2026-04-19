@@ -18,20 +18,22 @@ export default function ControlsPanel(props: Props) {
 
   return (
     <aside className="panel-right app-panel flex flex-col z-20">
-      <div className="p-4 border-b border-white/5 flex items-center justify-between">
-        <h2 className="font-semibold">Traversal</h2>
-        <span className="text-[10px] uppercase tracking-wider text-white/40">Controls</span>
+      <div className="p-4 border-b border-black/8 flex items-center justify-between">
+        <h2 className="font-semibold text-gray-900">Traversal</h2>
+        <span className="text-[10px] uppercase tracking-wider text-gray-500">Controls</span>
       </div>
 
       <div className="p-4 space-y-4 overflow-y-auto flex-1">
         <Field label="Source">
-          <div className="rounded-lg p-1 flex text-xs bg-white/5 border border-white/5">
+          <div className="rounded-lg p-1 flex text-xs bg-black/5 border border-black/8">
             {(["url", "html"] as const).map(s => (
               <button
                 key={s}
                 onClick={() => setSourceType(s)}
                 className={`flex-1 py-1.5 rounded-md font-medium transition ${
-                  sourceType === s ? "bg-white/10 text-white" : "text-white/50"
+                  sourceType === s
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-800"
                 }`}
               >
                 {s.toUpperCase()}
@@ -61,8 +63,8 @@ export default function ControlsPanel(props: Props) {
                 onClick={() => setAlgo(a)}
                 className={`py-2 text-sm font-medium rounded-lg border transition ${
                   algo === a
-                    ? "bg-[#0367fc]/15 border-[#0367fc] text-white"
-                    : "bg-white/3 border-white/5 text-white/70 hover:text-white"
+                    ? "bg-[#0367fd]/10 border-[#0367fd] text-[#0367fd]"
+                    : "bg-white/60 border-black/8 text-gray-700 hover:text-gray-900"
                 }`}
               >
                 {a.toUpperCase()}
@@ -74,7 +76,7 @@ export default function ControlsPanel(props: Props) {
         <Field label="Limit">
           <div className="flex gap-2">
             <input className="input-glass" placeholder="Top-N" defaultValue={5} />
-            <button className="px-3 text-xs rounded-lg bg-white/5 border border-white/5 text-white/70 hover:text-white">
+            <button className="px-3 text-xs rounded-lg bg-white/60 border border-black/8 text-gray-700 hover:text-gray-900">
               All
             </button>
           </div>
@@ -95,7 +97,7 @@ export default function ControlsPanel(props: Props) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-[11px] uppercase tracking-wider text-white/40">{label}</label>
+      <label className="text-[11px] uppercase tracking-wider text-gray-500">{label}</label>
       <div className="mt-2 space-y-2">{children}</div>
     </div>
   );

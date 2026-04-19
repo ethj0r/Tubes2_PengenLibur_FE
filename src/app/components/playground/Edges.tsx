@@ -1,33 +1,52 @@
 import { DomNode } from "./types";
 import { EDGES } from "./mockData";
+import { NODE_CX, NODE_CY, NODE_H } from "./DomNode";
 
-export default function Edges({ nodeById }: { nodeById: Record<string, DomNode> }) {
+type Props = {
+  nodeById: Record<string, DomNode>;
+  backtrack?: Set<string>;
+};
+
+const EDGE_IDLE = "#6b7280";
+const EDGE_TRAVERSE = "#161616";
+const EDGE_BACKTRACK = "#0367fd";
+
+const edgeKey = (a: string, b: string) => `${a}->${b}`;
+
+export default function Edges({ nodeById, backtrack }: Props) {
   return (
-    <svg className="absolute inset-0 w-full h-full pointer-events-none">
-      <defs>
-        <linearGradient id="edge-active" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#0367fc" />
-          <stop offset="100%" stopColor="#d2f801" />
-        </linearGradient>
-      </defs>
+    <g>
       {EDGES.map(([a, b]) => {
         const na = nodeById[a], nb = nodeById[b];
         if (!na || !nb) return null;
         const active = na.state !== "idle" && nb.state !== "idle";
-        const x1 = na.x + 70, y1 = na.y + 38;
-        const x2 = nb.x + 70, y2 = nb.y;
+        const isBacktrack = backtrack?.has(edgeKey(a, b)) ?? false;
+
+        const x1 = NODE_CX(na), y1 = NODE_CY(na) + NODE_H / 2;
+        const x2 = NODE_CX(nb), y2 = NODE_CY(nb) - NODE_H / 2;
         const d = `M ${x1} ${y1} C ${x1} ${(y1 + y2) / 2}, ${x2} ${(y1 + y2) / 2}, ${x2} ${y2}`;
+
+        const stroke = !active ? EDGE_IDLE : isBacktrack ? EDGE_BACKTRACK : EDGE_TRAVERSE;
+        const opacity = !active ? 0.25 : 0.9;
+        const filter = !active
+          ? undefined
+          : isBacktrack
+            ? "url(#edge-glow-blue)"
+            : "url(#edge-glow-black)";
+
         return (
           <path
             key={a + b}
             d={d}
             fill="none"
-            stroke={active ? "url(#edge-active)" : "rgba(255,255,255,0.1)"}
+            stroke={stroke}
             strokeWidth={active ? 1.8 : 1}
-            className={active ? "edge-flow" : ""}
+            opacity={opacity}
+            filter={filter}
+            style={{ transition: "opacity .25s ease, stroke .25s ease" }}
           />
         );
       })}
-    </svg>
+    </g>
   );
 }

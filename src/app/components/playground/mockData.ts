@@ -1,19 +1,21 @@
 import { DomNode } from "./types";
 
-export const INITIAL_NODES: DomNode[] = [
-  { id: "n0", tag: "html", x: 420, y: 40, state: "idle" },
-  { id: "n1", tag: "head", x: 260, y: 140, state: "idle" },
-  { id: "n2", tag: "body", x: 580, y: 140, state: "idle" },
-  { id: "n3", tag: "title", cls: "t", x: 260, y: 240, state: "idle" },
-  { id: "n4", tag: "header", cls: "hero", x: 420, y: 240, state: "idle" },
-  { id: "n5", tag: "main", cls: "content", x: 600, y: 240, state: "idle" },
-  { id: "n6", tag: "footer", x: 780, y: 240, state: "idle" },
-  { id: "n7", tag: "h1", cls: "title", x: 340, y: 340, state: "idle" },
-  { id: "n8", tag: "p", cls: "lead", x: 460, y: 340, state: "idle" },
-  { id: "n9", tag: "section", cls: "box", x: 580, y: 340, state: "idle" },
-  { id: "n10", tag: "article", cls: "box", x: 700, y: 340, state: "idle" },
-  { id: "n11", tag: "span", x: 520, y: 440, state: "idle" },
-  { id: "n12", tag: "div", cls: "box", x: 640, y: 440, state: "idle" },
+type NodeMeta = { id: string; tag: string; cls?: string };
+
+const META: NodeMeta[] = [
+  { id: "n0", tag: "html" },
+  { id: "n1", tag: "head" },
+  { id: "n2", tag: "body" },
+  { id: "n3", tag: "title", cls: "t" },
+  { id: "n4", tag: "header", cls: "hero" },
+  { id: "n5", tag: "main", cls: "content" },
+  { id: "n6", tag: "footer" },
+  { id: "n7", tag: "h1", cls: "title" },
+  { id: "n8", tag: "p", cls: "lead" },
+  { id: "n9", tag: "section", cls: "box" },
+  { id: "n10", tag: "article", cls: "box" },
+  { id: "n11", tag: "span" },
+  { id: "n12", tag: "div", cls: "box" },
 ];
 
 export const EDGES: [string, string][] = [
@@ -25,5 +27,47 @@ export const EDGES: [string, string][] = [
   ["n9", "n11"], ["n9", "n12"],
 ];
 
-export const TRAVERSAL_ORDER = ["n0","n2","n4","n5","n7","n9","n10","n11","n12"];
+const ROOT = "n0";
+const NODE_W = 140;
+const H_GAP = 32;
+const LEAF_STEP = NODE_W + H_GAP;
+const LEVEL_Y = 120;
+const Y_OFFSET = 40;
+const X_OFFSET = 40;
+
+function layout(): Record<string, { x: number; y: number; depth: number }> {
+  const children: Record<string, string[]> = {};
+  for (const [a, b] of EDGES) (children[a] ||= []).push(b);
+
+  const pos: Record<string, { x: number; y: number; depth: number }> = {};
+  let leafIdx = 0;
+
+  function walk(id: string, depth: number): number {
+    const kids = children[id] || [];
+    let x: number;
+    if (kids.length === 0) {
+      x = X_OFFSET + leafIdx * LEAF_STEP;
+      leafIdx++;
+    } else {
+      const xs = kids.map(k => walk(k, depth + 1));
+      x = (xs[0] + xs[xs.length - 1]) / 2;
+    }
+    pos[id] = { x, y: Y_OFFSET + depth * LEVEL_Y, depth };
+    return x;
+  }
+
+  walk(ROOT, 0);
+  return pos;
+}
+
+const POS = layout();
+
+export const INITIAL_NODES: DomNode[] = META.map(m => ({
+  ...m,
+  x: POS[m.id].x,
+  y: POS[m.id].y,
+  state: "idle",
+}));
+
+export const TRAVERSAL_ORDER = ["n0", "n2", "n4", "n5", "n7", "n9", "n10", "n11", "n12"];
 export const MATCHES = new Set(["n9", "n12"]);

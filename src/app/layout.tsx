@@ -24,7 +24,7 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://fonts.cdnfonts.com/css/sf-pro-display"
         />
-        <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E👨🏻‍💻%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
+        <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E🌲%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
       </head>
       <body className="antialiased">
         {/* <Navbar /> */}

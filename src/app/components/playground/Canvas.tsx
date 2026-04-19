@@ -1,29 +1,110 @@
+"use client";
+
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { DomNode as DomNodeT, LogEntry } from "./types";
 import DomNode from "./DomNode";
 import Edges from "./Edges";
-import FloatingControls from "./FloatingControls";
-import StatsCard from "./StatsCard";
 
 type Props = {
   nodes: DomNodeT[];
   nodeById: Record<string, DomNodeT>;
   log: LogEntry[];
+  speed: number;
+  setSpeed: (n: number) => void;
 };
 
-export default function Canvas({ nodes, nodeById, log }: Props) {
+const MIN_SCALE = 0.2;
+const MAX_SCALE = 3;
+const WORLD_W = 2000;
+const WORLD_H = 1400;
+
+export type CanvasHandle = { el: HTMLElement | null };
+
+const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(
+  { nodes, nodeById }: Props,
+  ref
+) {
+  const wrapRef = useRef<HTMLElement>(null);
+  const [view, setView] = useState({ scale: 1, x: 40, y: 20 });
+
+  useImperativeHandle(ref, () => ({ get el() { return wrapRef.current; } }));
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      if (e.ctrlKey || e.metaKey) {
+        setView(v => {
+          const factor = Math.exp(-e.deltaY * 0.01);
+          const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * factor));
+          const wx = (mx - v.x) / v.scale;
+          const wy = (my - v.y) / v.scale;
+          return { scale: nextScale, x: mx - wx * nextScale, y: my - wy * nextScale };
+        });
+      } else {
+        setView(v => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY }));
+      }
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const worldStyle = {
+    transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
+    transformOrigin: "0 0" as const,
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    width: WORLD_W,
+    height: WORLD_H,
+  };
+
   return (
-    <section className="flex-1 relative overflow-hidden app-canvas">
+    <section
+      ref={wrapRef}
+      className="absolute inset-0 overflow-hidden app-canvas"
+      style={{ touchAction: "none" }}
+    >
       <div
-        className="absolute inset-0 opacity-30 pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: "radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(rgba(0,0,0,0.07) 1px, transparent 1px)",
           backgroundSize: "24px 24px",
         }}
       />
-      <Edges nodeById={nodeById} />
-      {nodes.map(n => <DomNode key={n.id} node={n} />)}
-      <FloatingControls />
-      <StatsCard log={log} />
+
+      <svg width={WORLD_W} height={WORLD_H} style={worldStyle}>
+        <defs>
+          <filter id="edge-glow-black" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.4" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="edge-glow-blue" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.6" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <Edges nodeById={nodeById} />
+      </svg>
+
+      <div style={worldStyle}>
+        {nodes.map(n => <DomNode key={n.id} node={n} />)}
+      </div>
     </section>
   );
-}
+});
+
+export default Canvas;

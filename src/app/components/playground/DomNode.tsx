@@ -1,24 +1,53 @@
+"use client";
+
 import { DomNode as DomNodeT } from "./types";
 
-export default function DomNode({ node }: { node: DomNodeT }) {
-  const { state } = node;
-  const dot =
-    state === "matched" ? "#d2f801" :
-    state === "visited" ? "#0367fc" : "rgba(255,255,255,0.2)";
+type Props = { node: DomNodeT };
+
+export const NODE_W = 128;
+export const NODE_H = 56;
+export const NODE_CX = (n: { x: number }) => n.x + NODE_W / 2;
+export const NODE_CY = (n: { y: number }) => n.y + NODE_H / 2;
+
+export default function DomNode({ node }: Props) {
+  const isStyled = node.state === "matched" || node.state === "visited";
+  const accent = isStyled ? "#ffffff" : "#6b7280";
+  const subColor = isStyled ? "rgba(255,255,255,0.75)" : "#6b7280";
+
+  const stateClass =
+    node.state === "matched" ? "is-matched" :
+    node.state === "visited" ? "is-visited" :
+    "";
 
   return (
     <div
-      className={`dom-node absolute w-[140px] px-3 py-2 text-left ${
-        state === "visited" ? "is-visited" : state === "matched" ? "is-matched" : ""
-      }`}
-      style={{ left: node.x, top: node.y }}
+      className={`dom-node ${stateClass}`}
+      style={{
+        position: "absolute",
+        left: node.x,
+        top: node.y,
+        width: NODE_W,
+        height: NODE_H,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        lineHeight: 1.1,
+      }}
     >
-      <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full" style={{ background: dot }} />
-        <span className="font-mono text-xs text-white/90">&lt;{node.tag}&gt;</span>
-      </div>
-      {node.cls && <div className="font-mono text-[10px] text-white/45 mt-1">.{node.cls}</div>}
-      <div className="text-[9px] text-white/30 mt-1">{node.id}</div>
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 12,
+          fontWeight: 600,
+          color: accent,
+        }}
+      >
+        {node.tag}
+      </span>
+      <span style={{ fontSize: 10, color: subColor }}>
+        {node.cls ? `.${node.cls}` : node.id}
+      </span>
     </div>
   );
 }

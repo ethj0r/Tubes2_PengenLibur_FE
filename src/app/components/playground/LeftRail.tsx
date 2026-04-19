@@ -1,11 +1,19 @@
 export default function LeftRail() {
   return (
-    <aside className="app-rail flex flex-col items-center py-4 border-r border-white/5 bg-[#141414] z-20">
+    <aside
+      className="app-rail flex flex-col items-center py-4 z-20"
+      style={{
+        background: "rgba(255, 255, 255, 0.55)",
+        backdropFilter: "blur(18px) saturate(180%)",
+        WebkitBackdropFilter: "blur(18px) saturate(180%)",
+        borderRight: "1px solid rgba(255, 255, 255, 0.7)",
+      }}
+    >
       <div
-        className="w-9 h-9 rounded-xl flex items-center justify-center text-[#d2f801] text-lg"
+        className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-lg"
         style={{
-          background: "linear-gradient(180deg,#0367fc,#0350c7)",
-          boxShadow: "0 0 18px -6px rgba(3,103,252,.55)",
+          background: "radial-gradient(at 35% 30%, #3b8bff 0%, #0367fd 60%, #0350c7 100%)",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1), 0 0 18px -6px rgba(3,103,253,0.5)",
         }}
         aria-label="PengenLibur"
       >
