@@ -2,15 +2,17 @@
 
 import type { RefObject } from "react";
 import { LogEntry } from "./types";
+import type { ApiStats } from "../../../lib/api";
 
 type Props = {
   log: LogEntry[];
+  stats?: ApiStats;
   mouseContainer?: RefObject<HTMLElement | null>;
 };
 
 const BOX_W = 230;
 
-export default function StatsCard({ log }: Props) {
+export default function StatsCard({ log, stats }: Props) {
   const matches = log.filter(l => l.matched).length;
   return (
     <div
@@ -26,10 +28,10 @@ export default function StatsCard({ log }: Props) {
       }}
     >
       <div className="text-xs">
-        <Row label="Time" value="12.4ms" />
+        <Row label="Time" value={stats ? `${stats.timeTakenMs}ms` : "—"} />
         <Row label="Nodes visited" value={`${log.length}`} />
         <Row label="Matches" value={`${matches}`} highlight />
-        <Row label="Max depth" value="4" />
+        <Row label="Max depth" value={stats ? `${stats.traversalMaxDepth}` : "—"} />
       </div>
     </div>
   );
@@ -39,7 +41,7 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
   return (
     <div className="flex justify-between mb-1 last:mb-0">
       <span className="text-gray-600">{label}</span>
-      <span className={`font-mono ${highlight ? "text-[#0367FD]" : "text-gray-900"}`}>
+      <span className={highlight ? "text-[#0367FD]" : "text-gray-900"}>
         {value}
       </span>
     </div>
