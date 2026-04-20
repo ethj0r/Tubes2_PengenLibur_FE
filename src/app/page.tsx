@@ -1,41 +1,101 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Canvas, { type CanvasHandle } from "./components/playground/Canvas";
 import ControlsPanel from "./components/playground/ControlsPanel";
 import LeftRail from "./components/playground/LeftRail";
 import TopBar from "./components/playground/TopBar";
 import FloatingControls from "./components/playground/FloatingControls";
 import StatsCard from "./components/playground/StatsCard";
-import { INITIAL_NODES, MATCHES, TRAVERSAL_ORDER } from "./components/playground/mockData";
 import type { Algo, DomNode, LogEntry, SourceType } from "./components/playground/types";
+import { traverse, type TraverseResponse } from "../lib/api";
+import { layoutTree } from "../lib/layout";
 
 export default function PlaygroundLayout() {
   const [algo, setAlgo] = useState<Algo>("bfs");
   const [sourceType, setSourceType] = useState<SourceType>("url");
+  const [source, setSource] = useState("");
   const [selector, setSelector] = useState(".box");
+  const [limit, setLimit] = useState(5);
   const [speed, setSpeed] = useState(300);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [nodes, setNodes] = useState<DomNode[]>([]);
+  const [edges, setEdges] = useState<[string, string][]>([]);
+  const [world, setWorld] = useState<{ w: number; h: number }>({ w: 2000, h: 1400 });
+  const [log, setLog] = useState<LogEntry[]>([]);
+  const [stats, setStats] = useState<TraverseResponse["stats"] | null>(null);
+
   const canvasRef = useRef<CanvasHandle>(null);
   const mouseRef = useRef<HTMLElement | null>(null);
-
-  const nodes: DomNode[] = INITIAL_NODES.map(node => {
-    if (MATCHES.has(node.id)) return { ...node, state: "matched" };
-    if (TRAVERSAL_ORDER.includes(node.id)) return { ...node, state: "visited" };
-    return node;
-  });
+  const replayRef = useRef<number | null>(null);
 
   const nodeById: Record<string, DomNode> = Object.fromEntries(
-    nodes.map(node => [node.id, node])
+    nodes.map(n => [n.id, n])
   );
 
-  const log: LogEntry[] = TRAVERSAL_ORDER.map((id, index) => ({
-    step: index + 1,
-    id,
-    matched: MATCHES.has(id),
-  }));
+  useEffect(() => {
+    return () => {
+      if (replayRef.current != null) window.clearTimeout(replayRef.current);
+    };
+  }, []);
 
-  const running = false;
-  const onRun = () => {};
+  const onRun = async () => {
+    if (running) return;
+    setError(null);
+    setRunning(true);
+    if (replayRef.current != null) {
+      window.clearTimeout(replayRef.current);
+      replayRef.current = null;
+    }
+
+    try {
+      const resp = await traverse({
+        source: sourceType,
+        input: source,
+        selector,
+        algorithm: algo,
+        limit,
+      });
+
+      const { nodes: laidOut, edges: laidEdges, width, height } = layoutTree(resp.tree);
+      setNodes(laidOut);
+      setEdges(laidEdges);
+      setWorld({ w: width, h: height });
+      setStats(resp.stats);
+      setLog([]);
+
+      const matches = new Set(resp.matches);
+      let i = 0;
+
+      const step = () => {
+        if (i >= resp.log.length) {
+          setRunning(false);
+          replayRef.current = null;
+          return;
+        }
+        const entry = resp.log[i++];
+        setNodes(prev =>
+          prev.map(n =>
+            n.id === entry.nodeId
+              ? { ...n, state: matches.has(entry.nodeId) ? "matched" : "visited" }
+              : n
+          )
+        );
+        setLog(prev => [
+          ...prev,
+          { step: entry.step, id: entry.nodeId, matched: entry.matched },
+        ]);
+        replayRef.current = window.setTimeout(step, speed);
+      };
+
+      step();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setRunning(false);
+    }
+  };
 
   return (
     <div className="app-shell">
@@ -52,12 +112,20 @@ export default function PlaygroundLayout() {
             ref={canvasRef}
             nodes={nodes}
             nodeById={nodeById}
+            edges={edges}
             log={log}
             speed={speed}
             setSpeed={setSpeed}
+            worldWidth={world.w}
+            worldHeight={world.h}
           />
-          <StatsCard log={log} mouseContainer={mouseRef} />
+          {stats && <StatsCard log={log} stats={stats} mouseContainer={mouseRef} />}
           <FloatingControls speed={speed} setSpeed={setSpeed} mouseContainer={mouseRef} />
+          {error && (
+            <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-lg z-20 max-w-md">
+              {error}
+            </div>
+          )}
         </div>
       </main>
 
@@ -66,8 +134,12 @@ export default function PlaygroundLayout() {
         setAlgo={setAlgo}
         sourceType={sourceType}
         setSourceType={setSourceType}
+        source={source}
+        setSource={setSource}
         selector={selector}
         setSelector={setSelector}
+        limit={limit}
+        setLimit={setLimit}
         running={running}
         onRun={onRun}
         log={log}

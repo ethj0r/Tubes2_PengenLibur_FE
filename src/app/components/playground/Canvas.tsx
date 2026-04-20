@@ -8,22 +8,27 @@ import Edges from "./Edges";
 type Props = {
   nodes: DomNodeT[];
   nodeById: Record<string, DomNodeT>;
+  edges: [string, string][];
   log: LogEntry[];
   speed: number;
   setSpeed: (n: number) => void;
+  worldWidth?: number;
+  worldHeight?: number;
 };
 
-const MIN_SCALE = 0.2;
+const MIN_SCALE = 0.05;
 const MAX_SCALE = 3;
-const WORLD_W = 2000;
-const WORLD_H = 1400;
+const DEFAULT_WORLD_W = 2000;
+const DEFAULT_WORLD_H = 1400;
 
 export type CanvasHandle = { el: HTMLElement | null };
 
 const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(
-  { nodes, nodeById }: Props,
+  { nodes, nodeById, edges, worldWidth, worldHeight }: Props,
   ref
 ) {
+  const WORLD_W = Math.max(worldWidth ?? DEFAULT_WORLD_W, DEFAULT_WORLD_W);
+  const WORLD_H = Math.max(worldHeight ?? DEFAULT_WORLD_H, DEFAULT_WORLD_H);
   const wrapRef = useRef<HTMLElement>(null);
   const [view, setView] = useState({ scale: 1, x: 40, y: 20 });
 
@@ -97,7 +102,7 @@ const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(
             </feMerge>
           </filter>
         </defs>
-        <Edges nodeById={nodeById} />
+        <Edges nodeById={nodeById} edges={edges} />
       </svg>
 
       <div style={worldStyle}>

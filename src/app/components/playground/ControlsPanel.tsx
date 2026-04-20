@@ -6,15 +6,19 @@ type Props = {
   setAlgo: (a: Algo) => void;
   sourceType: SourceType;
   setSourceType: (s: SourceType) => void;
+  source: string;
+  setSource: (s: string) => void;
   selector: string;
   setSelector: (s: string) => void;
+  limit: number;
+  setLimit: (n: number) => void;
   running: boolean;
   onRun: () => void;
   log: LogEntry[];
 };
 
 export default function ControlsPanel(props: Props) {
-  const { algo, setAlgo, sourceType, setSourceType, selector, setSelector, running, onRun, log } = props;
+  const { algo, setAlgo, sourceType, setSourceType, source, setSource, selector, setSelector, limit, setLimit, running, onRun, log } = props;
 
   return (
     <aside className="panel-right app-panel flex flex-col z-20">
@@ -43,6 +47,8 @@ export default function ControlsPanel(props: Props) {
           <input
             className="input-glass input-mono mt-2"
             placeholder={sourceType === "url" ? "https://example.com" : "<html>…</html>"}
+            value={source}
+            onChange={e => setSource(e.target.value)}
           />
         </Field>
 
@@ -75,8 +81,18 @@ export default function ControlsPanel(props: Props) {
 
         <Field label="Limit">
           <div className="flex gap-2">
-            <input className="input-glass" placeholder="Top-N" defaultValue={5} />
-            <button className="px-3 text-xs rounded-lg bg-white/60 border border-black/8 text-gray-700 hover:text-gray-900">
+            <input
+              className="input-glass"
+              placeholder="Top-N"
+              type="number"
+              min={0}
+              value={limit || ""}
+              onChange={e => setLimit(Number(e.target.value) || 0)}
+            />
+            <button
+              className="px-3 text-xs rounded-lg bg-white/60 border border-black/8 text-gray-700 hover:text-gray-900"
+              onClick={() => setLimit(0)}
+            >
               All
             </button>
           </div>

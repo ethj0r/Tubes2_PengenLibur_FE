@@ -1,9 +1,9 @@
 import { DomNode } from "./types";
-import { EDGES } from "./mockData";
 import { NODE_CX, NODE_CY, NODE_H } from "./DomNode";
 
 type Props = {
   nodeById: Record<string, DomNode>;
+  edges: [string, string][];
   backtrack?: Set<string>;
 };
 
@@ -13,10 +13,10 @@ const EDGE_BACKTRACK = "#0367fd";
 
 const edgeKey = (a: string, b: string) => `${a}->${b}`;
 
-export default function Edges({ nodeById, backtrack }: Props) {
+export default function Edges({ nodeById, edges, backtrack }: Props) {
   return (
     <g>
-      {EDGES.map(([a, b]) => {
+      {edges.map(([a, b]) => {
         const na = nodeById[a], nb = nodeById[b];
         if (!na || !nb) return null;
         const active = na.state !== "idle" && nb.state !== "idle";
