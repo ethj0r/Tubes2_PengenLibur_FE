@@ -1,5 +1,9 @@
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080";
+// better always pake relative path sih
+// jd dev mode dan prod mode sama melalui
+// reverse proxy, jd Next.js rewrites di dev, nginx/server lain di prod yg
+// nerusin /api/* ke backend.
+// izin vinnnnnnnnnnnnnn
+const API_BASE = "";
 
 export type ApiAttribute = { name: string; value: string };
 
