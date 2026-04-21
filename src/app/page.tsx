@@ -26,6 +26,7 @@ export default function PlaygroundLayout() {
   const [world, setWorld] = useState<{ w: number; h: number }>({ w: 2000, h: 1400 });
   const [log, setLog] = useState<LogEntry[]>([]);
   const [stats, setStats] = useState<TraverseResponse["stats"] | null>(null);
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
 
   const canvasRef = useRef<CanvasHandle>(null);
   const mouseRef = useRef<HTMLElement | null>(null);
@@ -65,6 +66,7 @@ export default function PlaygroundLayout() {
       setWorld({ w: width, h: height });
       setStats(resp.stats);
       setLog([]);
+      setActiveNodeId(null);
 
       const matches = new Set(resp.matches);
       let i = 0;
@@ -72,10 +74,12 @@ export default function PlaygroundLayout() {
       const step = () => {
         if (i >= resp.log.length) {
           setRunning(false);
+          setActiveNodeId(null);
           replayRef.current = null;
           return;
         }
         const entry = resp.log[i++];
+        setActiveNodeId(entry.nodeId);
         setNodes(prev =>
           prev.map(n =>
             n.id === entry.nodeId
@@ -118,6 +122,7 @@ export default function PlaygroundLayout() {
             setSpeed={setSpeed}
             worldWidth={world.w}
             worldHeight={world.h}
+            focusNodeId={activeNodeId}
           />
           {stats && <StatsCard log={log} stats={stats} mouseContainer={mouseRef} />}
           <FloatingControls speed={speed} setSpeed={setSpeed} mouseContainer={mouseRef} />
