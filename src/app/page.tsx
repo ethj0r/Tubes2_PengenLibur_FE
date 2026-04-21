@@ -26,6 +26,7 @@ export default function PlaygroundLayout() {
   const [world, setWorld] = useState<{ w: number; h: number }>({ w: 2000, h: 1400 });
   const [log, setLog] = useState<LogEntry[]>([]);
   const [stats, setStats] = useState<TraverseResponse["stats"] | null>(null);
+  const [elapsedMs, setElapsedMs] = useState<number | null>(null);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
 
   const canvasRef = useRef<CanvasHandle>(null);
@@ -54,6 +55,7 @@ export default function PlaygroundLayout() {
       replayRef.current = null;
     }
     setRunning(false);
+    setElapsedMs(null);
     setActiveNodeId(null);
   }, []);
 
@@ -61,9 +63,11 @@ export default function PlaygroundLayout() {
     if (running) return;
     const runId = runIdRef.current + 1;
     runIdRef.current = runId;
+    const runStart = performance.now();
 
     setError(null);
     setRunning(true);
+    setElapsedMs(null);
     if (replayRef.current != null) {
       window.clearTimeout(replayRef.current);
       replayRef.current = null;
@@ -104,6 +108,7 @@ export default function PlaygroundLayout() {
         if (i >= resp.log.length) {
           setRunning(false);
           setActiveNodeId(null);
+          setElapsedMs(performance.now() - runStart);
           replayRef.current = null;
           abortRef.current = null;
           return;
@@ -129,6 +134,7 @@ export default function PlaygroundLayout() {
       if (runIdRef.current !== runId) return;
       if (!(e instanceof Error && e.name === "AbortError")) {
         setError(e instanceof Error ? e.message : String(e));
+        setElapsedMs(performance.now() - runStart);
       }
       setRunning(false);
       setActiveNodeId(null);
@@ -162,7 +168,7 @@ export default function PlaygroundLayout() {
             worldHeight={world.h}
             focusNodeId={activeNodeId}
           />
-          {stats && <StatsCard log={log} stats={stats} mouseContainer={mouseRef} />}
+          {stats && <StatsCard log={log} stats={stats} elapsedMs={elapsedMs ?? undefined} running={running} mouseContainer={mouseRef} />}
           <FloatingControls speed={speed} setSpeed={setSpeed} mouseContainer={mouseRef} />
           {error && (
             <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-lg z-20 max-w-md">
