@@ -5,7 +5,8 @@ services:
       dockerfile: Dockerfile
     environment:
       PORT: "8080"
-      CORS_ALLOWED_ORIGIN: "http://20.189.120.191"
+      # CORS_ALLOWED_ORIGIN: "http://20.189.120.191"
+      CORS_ALLOWED_ORIGIN: "http://domtree.eastasia.cloudapp.azure.com"
     expose:
       - "8080"
     restart: unless-stopped
