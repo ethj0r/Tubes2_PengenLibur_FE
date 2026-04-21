@@ -7,9 +7,9 @@ type Props = {
   backtrack?: Set<string>;
 };
 
-const EDGE_IDLE = "#6b7280";
-const EDGE_TRAVERSE = "#161616";
-const EDGE_BACKTRACK = "#0367fd";
+const EDGE_IDLE = "var(--edge-idle)";
+const EDGE_TRAVERSE = "var(--edge-traverse)";
+const EDGE_BACKTRACK = "var(--edge-backtrack)";
 
 const edgeKey = (a: string, b: string) => `${a}->${b}`;
 

@@ -40,8 +40,8 @@ export default function StatsCard({ log, stats }: Props) {
 function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="flex justify-between mb-1 last:mb-0">
-      <span className="text-gray-600">{label}</span>
-      <span className={highlight ? "text-[#0367FD]" : "text-gray-900"}>
+      <span style={{ color: "var(--muted)" }}>{label}</span>
+      <span style={{ color: highlight ? "var(--accent-soft)" : "var(--fg)" }}>
         {value}
       </span>
     </div>

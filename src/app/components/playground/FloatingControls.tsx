@@ -31,13 +31,13 @@ export default function FloatingControls({ speed, setSpeed }: Props) {
         {["⟲", "▶", "⏸", "⏭"].map((g, i) => (
           <button key={i} className="btn-ghost">{g}</button>
         ))}
-        <div className="w-px h-5 bg-black/10 mx-1" />
+        <div className="w-px h-5 mx-1" style={{ background: "var(--border)" }} />
         {["－", "＋", "⤢"].map((g, i) => (
           <button key={i} className="btn-ghost">{g}</button>
         ))}
-        <div className="w-px h-5 bg-black/10 mx-1" />
+        <div className="w-px h-5 mx-1" style={{ background: "var(--border)" }} />
         <div className="flex items-center gap-2 pl-1 flex-1">
-          <span className="text-[10px] uppercase tracking-wider text-gray-600">Speed</span>
+          <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--muted)" }}>Speed</span>
           <input
             type="range"
             min={MIN_MS}
@@ -48,7 +48,7 @@ export default function FloatingControls({ speed, setSpeed }: Props) {
             className="flex-1 accent-[#0367fd]"
             aria-label="Traversal speed"
           />
-          <span className="text-[10px] text-gray-800 w-12 text-right">{speed}ms</span>
+          <span className="text-[10px] w-12 text-right" style={{ color: "var(--fg)" }}>{speed}ms</span>
         </div>
       </div>
     </div>
