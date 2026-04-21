@@ -247,8 +247,12 @@ body::-webkit-scrollbar-corner,
   padding: .55rem .75rem;
   color: var(--fg);
   font-size: .875rem;
+  color-scheme: light;
   outline: none;
   transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+:root[data-theme="dark"] .input-glass {
+  color-scheme: dark;
 }
 .input-glass::placeholder { color: var(--input-placeholder); }
 .input-glass:focus {
