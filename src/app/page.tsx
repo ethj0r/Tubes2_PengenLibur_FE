@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Canvas, { type CanvasHandle } from "./components/playground/Canvas";
 import ControlsPanel from "./components/playground/ControlsPanel";
 import LeftRail from "./components/playground/LeftRail";
@@ -31,6 +31,8 @@ export default function PlaygroundLayout() {
   const canvasRef = useRef<CanvasHandle>(null);
   const mouseRef = useRef<HTMLElement | null>(null);
   const replayRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const runIdRef = useRef(0);
 
   const nodeById: Record<string, DomNode> = Object.fromEntries(
     nodes.map(n => [n.id, n])
@@ -38,18 +40,38 @@ export default function PlaygroundLayout() {
 
   useEffect(() => {
     return () => {
+      abortRef.current?.abort();
       if (replayRef.current != null) window.clearTimeout(replayRef.current);
     };
   }, []);
 
+  const stopTraversal = useCallback(() => {
+    runIdRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    if (replayRef.current != null) {
+      window.clearTimeout(replayRef.current);
+      replayRef.current = null;
+    }
+    setRunning(false);
+    setActiveNodeId(null);
+  }, []);
+
   const onRun = async () => {
     if (running) return;
+    const runId = runIdRef.current + 1;
+    runIdRef.current = runId;
+
     setError(null);
     setRunning(true);
     if (replayRef.current != null) {
       window.clearTimeout(replayRef.current);
       replayRef.current = null;
     }
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       const resp = await traverse({
@@ -58,10 +80,12 @@ export default function PlaygroundLayout() {
         selector,
         algorithm: algo,
         limit,
-      });
+      }, controller.signal);
+
+      if (runIdRef.current !== runId) return;
 
       const { nodes: laidOut, edges: laidEdges, width, height } = layoutTree(resp.tree);
-      setNodes(laidOut);
+      setNodes(laidOut.map(n => ({ ...n, state: "idle" })));
       setEdges(laidEdges);
       setWorld({ w: width, h: height });
       setStats(resp.stats);
@@ -72,10 +96,16 @@ export default function PlaygroundLayout() {
       let i = 0;
 
       const step = () => {
+        if (runIdRef.current !== runId) {
+          replayRef.current = null;
+          return;
+        }
+
         if (i >= resp.log.length) {
           setRunning(false);
           setActiveNodeId(null);
           replayRef.current = null;
+          abortRef.current = null;
           return;
         }
         const entry = resp.log[i++];
@@ -96,8 +126,16 @@ export default function PlaygroundLayout() {
 
       step();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (runIdRef.current !== runId) return;
+      if (!(e instanceof Error && e.name === "AbortError")) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
       setRunning(false);
+      setActiveNodeId(null);
+    } finally {
+      if (runIdRef.current === runId) {
+        abortRef.current = null;
+      }
     }
   };
 
@@ -147,6 +185,7 @@ export default function PlaygroundLayout() {
         setLimit={setLimit}
         running={running}
         onRun={onRun}
+        onStop={stopTraversal}
         log={log}
       />
     </div>

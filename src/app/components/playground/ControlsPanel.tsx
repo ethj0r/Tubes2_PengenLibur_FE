@@ -14,11 +14,12 @@ type Props = {
   setLimit: (n: number) => void;
   running: boolean;
   onRun: () => void;
+  onStop: () => void;
   log: LogEntry[];
 };
 
 export default function ControlsPanel(props: Props) {
-  const { algo, setAlgo, sourceType, setSourceType, source, setSource, selector, setSelector, limit, setLimit, running, onRun, log } = props;
+  const { algo, setAlgo, sourceType, setSourceType, source, setSource, selector, setSelector, limit, setLimit, running, onRun, onStop, log } = props;
 
   return (
     <aside className="panel-right app-panel flex flex-col z-20">
@@ -111,9 +112,24 @@ export default function ControlsPanel(props: Props) {
           </div>
         </Field>
 
-        <button className="btn-accent w-full" onClick={onRun} disabled={running}>
-          {running ? "Traversing…" : "Run traversal"}
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button className="btn-accent w-full" onClick={onRun} disabled={running}>
+            {running ? "Traversing…" : "Run traversal"}
+          </button>
+          <button
+            className="w-full rounded-lg border text-sm font-medium"
+            onClick={onStop}
+            disabled={!running}
+            style={{
+              background: running ? "rgba(239, 68, 68, 0.14)" : "var(--surface-soft)",
+              borderColor: running ? "#ef4444" : "var(--border)",
+              color: running ? "#b91c1c" : "var(--muted)",
+              opacity: running ? 1 : 0.8,
+            }}
+          >
+            Stop
+          </button>
+        </div>
 
         <div className="hairline" />
 
