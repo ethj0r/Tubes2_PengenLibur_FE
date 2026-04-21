@@ -33,7 +33,10 @@ export default function ControlsPanel(props: Props) {
             {(["url", "html"] as const).map(s => (
               <button
                 key={s}
-                onClick={() => setSourceType(s)}
+                onClick={() => {
+                  setSourceType(s);
+                  setSource("");
+                }}
                 className={`flex-1 py-1.5 rounded-md font-medium transition ${
                   sourceType === s
                     ? "bg-white text-gray-900 shadow-sm"
