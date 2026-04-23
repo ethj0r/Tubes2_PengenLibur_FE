@@ -46,11 +46,12 @@ export type TraverseRequest = {
   limit: number;
 };
 
-export async function traverse(req: TraverseRequest): Promise<TraverseResponse> {
+export async function traverse(req: TraverseRequest, signal?: AbortSignal): Promise<TraverseResponse> {
   const res = await fetch(`${API_BASE}/api/v1/traverse`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(req),
+    signal,
   });
   if (!res.ok) {
     const body = await res.text();

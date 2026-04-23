@@ -7,9 +7,9 @@ type Props = {
   backtrack?: Set<string>;
 };
 
-const EDGE_IDLE = "#6b7280";
-const EDGE_TRAVERSE = "#161616";
-const EDGE_BACKTRACK = "#0367fd";
+const EDGE_IDLE = "var(--edge-idle)";
+const EDGE_TRAVERSE = "var(--edge-traverse)";
+const EDGE_BACKTRACK = "var(--edge-backtrack)";
 
 const edgeKey = (a: string, b: string) => `${a}->${b}`;
 
@@ -24,7 +24,13 @@ export default function Edges({ nodeById, edges, backtrack }: Props) {
 
         const x1 = NODE_CX(na), y1 = NODE_CY(na) + NODE_H / 2;
         const x2 = NODE_CX(nb), y2 = NODE_CY(nb) - NODE_H / 2;
-        const d = `M ${x1} ${y1} C ${x1} ${(y1 + y2) / 2}, ${x2} ${(y1 + y2) / 2}, ${x2} ${y2}`;
+        const midY = (y1 + y2) / 2;
+
+        // Keep a slight bend for centered children
+        const isCentered = Math.abs(x1 - x2) < 0.5;
+        const c1x = isCentered ? x1 - 14 : x1;
+        const c2x = isCentered ? x2 + 14 : x2;
+        const d = `M ${x1} ${y1} C ${c1x} ${midY}, ${c2x} ${midY}, ${x2} ${y2}`;
 
         const stroke = !active ? EDGE_IDLE : isBacktrack ? EDGE_BACKTRACK : EDGE_TRAVERSE;
         const opacity = !active ? 0.25 : 0.9;
@@ -36,7 +42,7 @@ export default function Edges({ nodeById, edges, backtrack }: Props) {
 
         return (
           <path
-            key={a + b}
+            key={edgeKey(a, b)}
             d={d}
             fill="none"
             stroke={stroke}

@@ -14,22 +14,23 @@ type Props = {
   setLimit: (n: number) => void;
   running: boolean;
   onRun: () => void;
+  onStop: () => void;
   log: LogEntry[];
 };
 
 export default function ControlsPanel(props: Props) {
-  const { algo, setAlgo, sourceType, setSourceType, source, setSource, selector, setSelector, limit, setLimit, running, onRun, log } = props;
+  const { algo, setAlgo, sourceType, setSourceType, source, setSource, selector, setSelector, limit, setLimit, running, onRun, onStop, log } = props;
 
   return (
     <aside className="panel-right app-panel flex flex-col z-20">
-      <div className="p-4 border-b border-black/8 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-900">Traversal</h2>
-        <span className="text-[10px] uppercase tracking-wider text-gray-500">Controls</span>
+      <div className="p-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
+        <h2 className="font-semibold" style={{ color: "var(--fg)" }}>Traversal</h2>
+        <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--muted)" }}>Controls</span>
       </div>
 
       <div className="p-4 space-y-4 overflow-y-auto flex-1">
         <Field label="Source">
-          <div className="rounded-lg p-1 flex text-xs bg-black/5 border border-black/8">
+          <div className="rounded-lg p-1 flex text-xs" style={{ background: "var(--surface-soft)", border: "1px solid var(--border)" }}>
             {(["url", "html"] as const).map(s => (
               <button
                 key={s}
@@ -39,9 +40,13 @@ export default function ControlsPanel(props: Props) {
                 }}
                 className={`flex-1 py-1.5 rounded-md font-medium transition ${
                   sourceType === s
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
+                    ? "shadow-sm"
+                    : ""
                 }`}
+                style={{
+                  background: sourceType === s ? "var(--surface-strong)" : "transparent",
+                  color: sourceType === s ? "var(--fg)" : "var(--muted)",
+                }}
               >
                 {s.toUpperCase()}
               </button>
@@ -72,9 +77,14 @@ export default function ControlsPanel(props: Props) {
                 onClick={() => setAlgo(a)}
                 className={`py-2 text-sm font-medium rounded-lg border transition ${
                   algo === a
-                    ? "bg-[#0367fd]/10 border-[#0367fd] text-[#0367fd]"
-                    : "bg-white/60 border-black/8 text-gray-700 hover:text-gray-900"
+                    ? ""
+                    : ""
                 }`}
+                style={{
+                  background: algo === a ? "rgba(3, 103, 253, 0.14)" : "var(--surface-soft)",
+                  borderColor: algo === a ? "#0367fd" : "var(--border)",
+                  color: algo === a ? "#0367fd" : "var(--fg)",
+                }}
               >
                 {a.toUpperCase()}
               </button>
@@ -93,7 +103,8 @@ export default function ControlsPanel(props: Props) {
               onChange={e => setLimit(Number(e.target.value) || 0)}
             />
             <button
-              className="px-3 text-xs rounded-lg bg-white/60 border border-black/8 text-gray-700 hover:text-gray-900"
+              className="px-3 text-xs rounded-lg"
+              style={{ background: "var(--surface-soft)", border: "1px solid var(--border)", color: "var(--fg)" }}
               onClick={() => setLimit(0)}
             >
               All
@@ -101,9 +112,24 @@ export default function ControlsPanel(props: Props) {
           </div>
         </Field>
 
-        <button className="btn-accent w-full" onClick={onRun} disabled={running}>
-          {running ? "Traversing…" : "Run traversal"}
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button className="btn-accent w-full" onClick={onRun} disabled={running}>
+            {running ? "Traversing…" : "Run traversal"}
+          </button>
+          <button
+            className="w-full rounded-lg border text-sm font-medium"
+            onClick={onStop}
+            disabled={!running}
+            style={{
+              background: running ? "rgba(239, 68, 68, 0.14)" : "var(--surface-soft)",
+              borderColor: running ? "#ef4444" : "var(--border)",
+              color: running ? "#b91c1c" : "var(--muted)",
+              opacity: running ? 1 : 0.8,
+            }}
+          >
+            Stop
+          </button>
+        </div>
 
         <div className="hairline" />
 
@@ -116,7 +142,7 @@ export default function ControlsPanel(props: Props) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-[11px] uppercase tracking-wider text-gray-500">{label}</label>
+      <label className="text-[11px] uppercase tracking-wider" style={{ color: "var(--muted)" }}>{label}</label>
       <div className="mt-2 space-y-2">{children}</div>
     </div>
   );

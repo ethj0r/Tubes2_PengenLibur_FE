@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Canvas, { type CanvasHandle } from "./components/playground/Canvas";
 import ControlsPanel from "./components/playground/ControlsPanel";
 import LeftRail from "./components/playground/LeftRail";
@@ -26,10 +26,14 @@ export default function PlaygroundLayout() {
   const [world, setWorld] = useState<{ w: number; h: number }>({ w: 2000, h: 1400 });
   const [log, setLog] = useState<LogEntry[]>([]);
   const [stats, setStats] = useState<TraverseResponse["stats"] | null>(null);
+  const [elapsedMs, setElapsedMs] = useState<number | null>(null);
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
 
   const canvasRef = useRef<CanvasHandle>(null);
   const mouseRef = useRef<HTMLElement | null>(null);
   const replayRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const runIdRef = useRef(0);
 
   const nodeById: Record<string, DomNode> = Object.fromEntries(
     nodes.map(n => [n.id, n])
@@ -37,18 +41,41 @@ export default function PlaygroundLayout() {
 
   useEffect(() => {
     return () => {
+      abortRef.current?.abort();
       if (replayRef.current != null) window.clearTimeout(replayRef.current);
     };
   }, []);
 
-  const onRun = async () => {
-    if (running) return;
-    setError(null);
-    setRunning(true);
+  const stopTraversal = useCallback(() => {
+    runIdRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
     if (replayRef.current != null) {
       window.clearTimeout(replayRef.current);
       replayRef.current = null;
     }
+    setRunning(false);
+    setElapsedMs(null);
+    setActiveNodeId(null);
+  }, []);
+
+  const onRun = async () => {
+    if (running) return;
+    const runId = runIdRef.current + 1;
+    runIdRef.current = runId;
+    const runStart = performance.now();
+
+    setError(null);
+    setRunning(true);
+    setElapsedMs(null);
+    if (replayRef.current != null) {
+      window.clearTimeout(replayRef.current);
+      replayRef.current = null;
+    }
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       const resp = await traverse({
@@ -57,25 +84,37 @@ export default function PlaygroundLayout() {
         selector,
         algorithm: algo,
         limit,
-      });
+      }, controller.signal);
+
+      if (runIdRef.current !== runId) return;
 
       const { nodes: laidOut, edges: laidEdges, width, height } = layoutTree(resp.tree);
-      setNodes(laidOut);
+      setNodes(laidOut.map(n => ({ ...n, state: "idle" })));
       setEdges(laidEdges);
       setWorld({ w: width, h: height });
       setStats(resp.stats);
       setLog([]);
+      setActiveNodeId(null);
 
       const matches = new Set(resp.matches);
       let i = 0;
 
       const step = () => {
-        if (i >= resp.log.length) {
-          setRunning(false);
+        if (runIdRef.current !== runId) {
           replayRef.current = null;
           return;
         }
+
+        if (i >= resp.log.length) {
+          setRunning(false);
+          setActiveNodeId(null);
+          setElapsedMs(performance.now() - runStart);
+          replayRef.current = null;
+          abortRef.current = null;
+          return;
+        }
         const entry = resp.log[i++];
+        setActiveNodeId(entry.nodeId);
         setNodes(prev =>
           prev.map(n =>
             n.id === entry.nodeId
@@ -92,8 +131,17 @@ export default function PlaygroundLayout() {
 
       step();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (runIdRef.current !== runId) return;
+      if (!(e instanceof Error && e.name === "AbortError")) {
+        setError(e instanceof Error ? e.message : String(e));
+        setElapsedMs(performance.now() - runStart);
+      }
       setRunning(false);
+      setActiveNodeId(null);
+    } finally {
+      if (runIdRef.current === runId) {
+        abortRef.current = null;
+      }
     }
   };
 
@@ -118,8 +166,9 @@ export default function PlaygroundLayout() {
             setSpeed={setSpeed}
             worldWidth={world.w}
             worldHeight={world.h}
+            focusNodeId={activeNodeId}
           />
-          {stats && <StatsCard log={log} stats={stats} mouseContainer={mouseRef} />}
+          {stats && <StatsCard log={log} stats={stats} elapsedMs={elapsedMs ?? undefined} running={running} mouseContainer={mouseRef} />}
           <FloatingControls speed={speed} setSpeed={setSpeed} mouseContainer={mouseRef} />
           {error && (
             <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-lg z-20 max-w-md">
@@ -142,6 +191,7 @@ export default function PlaygroundLayout() {
         setLimit={setLimit}
         running={running}
         onRun={onRun}
+        onStop={stopTraversal}
         log={log}
       />
     </div>
