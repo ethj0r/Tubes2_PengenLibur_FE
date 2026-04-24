@@ -5,6 +5,15 @@ import type { RefObject } from "react";
 type Props = {
   speed: number;
   setSpeed: (n: number) => void;
+  running: boolean;
+  canControlPlayback: boolean;
+  onReplay: () => void;
+  onPlay: () => void;
+  onPause: () => void;
+  onNext: () => void;
+  onZoomOut: () => void;
+  onZoomIn: () => void;
+  onResetView: () => void;
   mouseContainer?: RefObject<HTMLElement | null>;
 };
 
@@ -13,7 +22,19 @@ const MAX_MS = 1200;
 
 const BOX_W = 560;
 
-export default function FloatingControls({ speed, setSpeed }: Props) {
+export default function FloatingControls({
+  speed,
+  setSpeed,
+  running,
+  canControlPlayback,
+  onReplay,
+  onPlay,
+  onPause,
+  onNext,
+  onZoomOut,
+  onZoomIn,
+  onResetView,
+}: Props) {
   return (
     <div
       className="liquid-glass-card"
@@ -28,13 +49,14 @@ export default function FloatingControls({ speed, setSpeed }: Props) {
       }}
     >
       <div className="flex items-center gap-2">
-        {["⟲", "▶", "⏸", "⏭"].map((g, i) => (
-          <button key={i} className="btn-ghost">{g}</button>
-        ))}
+        <button className="btn-ghost" onClick={onReplay} title="Replay" disabled={!canControlPlayback}>⟲</button>
+        <button className="btn-ghost" onClick={onPlay} title="Play" disabled={!canControlPlayback || running}>▶</button>
+        <button className="btn-ghost" onClick={onPause} title="Pause" disabled={!running}>⏸</button>
+        <button className="btn-ghost" onClick={onNext} title="Next step" disabled={!canControlPlayback}>⏭</button>
         <div className="w-px h-5 mx-1" style={{ background: "var(--border)" }} />
-        {["－", "＋", "⤢"].map((g, i) => (
-          <button key={i} className="btn-ghost">{g}</button>
-        ))}
+        <button className="btn-ghost" onClick={onZoomOut} title="Zoom out">－</button>
+        <button className="btn-ghost" onClick={onZoomIn} title="Zoom in">＋</button>
+        <button className="btn-ghost" onClick={onResetView} title="Reset view">⤢</button>
         <div className="w-px h-5 mx-1" style={{ background: "var(--border)" }} />
         <div className="flex items-center gap-2 pl-1 flex-1">
           <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--muted)" }}>Speed</span>

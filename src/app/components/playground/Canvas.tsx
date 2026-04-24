@@ -24,7 +24,14 @@ const DEFAULT_WORLD_H = 1400;
 const FOLLOW_LERP = 0.18; /* to make transition smoother */
 const FOLLOW_EPSILON = 0.35;
 
-export type CanvasHandle = { el: HTMLElement | null };
+export type CanvasHandle = {
+  el: HTMLElement | null;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetView: () => void;
+};
+
+const ZOOM_STEP = 1.2;
 
 const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(
   { nodes, nodeById, edges, worldWidth, worldHeight, focusNodeId }: Props,
@@ -37,7 +44,36 @@ const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(
   const targetViewRef = useRef<{ x: number; y: number } | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  useImperativeHandle(ref, () => ({ get el() { return wrapRef.current; } }));
+  const zoomAtViewportCenter = (factor: number) => {
+    const el = wrapRef.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    const mx = rect.width / 2;
+    const my = rect.height / 2;
+
+    setView(v => {
+      const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * factor));
+      const wx = (mx - v.x) / v.scale;
+      const wy = (my - v.y) / v.scale;
+      return { scale: nextScale, x: mx - wx * nextScale, y: my - wy * nextScale };
+    });
+  };
+
+  useImperativeHandle(ref, () => ({
+    get el() {
+      return wrapRef.current;
+    },
+    zoomIn() {
+      zoomAtViewportCenter(ZOOM_STEP);
+    },
+    zoomOut() {
+      zoomAtViewportCenter(1 / ZOOM_STEP);
+    },
+    resetView() {
+      setView({ scale: 1, x: 40, y: 20 });
+    },
+  }));
 
   useEffect(() => {
     const el = wrapRef.current;

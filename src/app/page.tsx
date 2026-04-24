@@ -34,30 +34,144 @@ export default function PlaygroundLayout() {
   const replayRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
+  const speedRef = useRef(speed);
+  const playbackIndexRef = useRef(0);
+  const playbackStartRef = useRef<number | null>(null);
+  const replayDataRef = useRef<{ log: { step: number; nodeId: string; matched: boolean }[]; matches: Set<string> } | null>(null);
+
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
 
   const nodeById: Record<string, DomNode> = Object.fromEntries(
     nodes.map(n => [n.id, n])
   );
 
+  const clearReplayTimer = useCallback(() => {
+    if (replayRef.current != null) {
+      window.clearTimeout(replayRef.current);
+      replayRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
-      if (replayRef.current != null) window.clearTimeout(replayRef.current);
+      clearReplayTimer();
     };
-  }, []);
+  }, [clearReplayTimer]);
+
+  const finishPlayback = useCallback(() => {
+    clearReplayTimer();
+    setRunning(false);
+    setActiveNodeId(null);
+    if (playbackStartRef.current != null) {
+      setElapsedMs(performance.now() - playbackStartRef.current);
+    }
+  }, [clearReplayTimer]);
+
+  const applyNextStep = useCallback(() => {
+    const replayData = replayDataRef.current;
+    if (!replayData) return false;
+
+    const i = playbackIndexRef.current;
+    if (i >= replayData.log.length) {
+      finishPlayback();
+      return false;
+    }
+
+    const entry = replayData.log[i];
+    playbackIndexRef.current = i + 1;
+
+    setActiveNodeId(entry.nodeId);
+    setNodes(prev =>
+      prev.map(n =>
+        n.id === entry.nodeId
+          ? { ...n, state: replayData.matches.has(entry.nodeId) ? "matched" : "visited" }
+          : n
+      )
+    );
+    setLog(prev => [...prev, { step: entry.step, id: entry.nodeId, matched: entry.matched }]);
+
+    if (playbackIndexRef.current >= replayData.log.length) {
+      finishPlayback();
+    }
+
+    return true;
+  }, [finishPlayback]);
+
+  const schedulePlayback = useCallback(() => {
+    clearReplayTimer();
+    replayRef.current = window.setTimeout(function tick() {
+      const progressed = applyNextStep();
+      if (!progressed) return;
+
+      if (playbackIndexRef.current < (replayDataRef.current?.log.length ?? 0)) {
+        replayRef.current = window.setTimeout(tick, speedRef.current);
+      }
+    }, speedRef.current);
+  }, [applyNextStep, clearReplayTimer]);
+
+  const onPausePlayback = useCallback(() => {
+    clearReplayTimer();
+    setRunning(false);
+    setActiveNodeId(null);
+  }, [clearReplayTimer]);
+
+  const onPlayPlayback = useCallback(() => {
+    const replayData = replayDataRef.current;
+    if (!replayData || replayData.log.length === 0) return;
+
+    if (playbackIndexRef.current >= replayData.log.length) {
+      playbackIndexRef.current = 0;
+      setNodes(prev => prev.map(n => ({ ...n, state: "idle" })));
+      setLog([]);
+      setActiveNodeId(null);
+      setElapsedMs(null);
+      playbackStartRef.current = performance.now();
+    }
+
+    setRunning(true);
+    schedulePlayback();
+  }, [schedulePlayback]);
+
+  const onReplayPlayback = useCallback(() => {
+    const replayData = replayDataRef.current;
+    if (!replayData || replayData.log.length === 0) return;
+
+    clearReplayTimer();
+    playbackIndexRef.current = 0;
+    setNodes(prev => prev.map(n => ({ ...n, state: "idle" })));
+    setLog([]);
+    setActiveNodeId(null);
+    setElapsedMs(null);
+    playbackStartRef.current = performance.now();
+    setRunning(true);
+    schedulePlayback();
+  }, [clearReplayTimer, schedulePlayback]);
+
+  const onNextStep = useCallback(() => {
+    const replayData = replayDataRef.current;
+    if (!replayData || replayData.log.length === 0) return;
+
+    clearReplayTimer();
+    setRunning(false);
+    if (playbackStartRef.current == null) {
+      playbackStartRef.current = performance.now();
+      setElapsedMs(null);
+    }
+    applyNextStep();
+  }, [applyNextStep, clearReplayTimer]);
 
   const stopTraversal = useCallback(() => {
     runIdRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
-    if (replayRef.current != null) {
-      window.clearTimeout(replayRef.current);
-      replayRef.current = null;
-    }
+    clearReplayTimer();
     setRunning(false);
     setElapsedMs(null);
     setActiveNodeId(null);
-  }, []);
+  }, [clearReplayTimer]);
 
   const onRun = async () => {
     if (running) return;
@@ -68,10 +182,7 @@ export default function PlaygroundLayout() {
     setError(null);
     setRunning(true);
     setElapsedMs(null);
-    if (replayRef.current != null) {
-      window.clearTimeout(replayRef.current);
-      replayRef.current = null;
-    }
+    clearReplayTimer();
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -96,40 +207,20 @@ export default function PlaygroundLayout() {
       setLog([]);
       setActiveNodeId(null);
 
-      const matches = new Set(resp.matches);
-      let i = 0;
-
-      const step = () => {
-        if (runIdRef.current !== runId) {
-          replayRef.current = null;
-          return;
-        }
-
-        if (i >= resp.log.length) {
-          setRunning(false);
-          setActiveNodeId(null);
-          setElapsedMs(performance.now() - runStart);
-          replayRef.current = null;
-          abortRef.current = null;
-          return;
-        }
-        const entry = resp.log[i++];
-        setActiveNodeId(entry.nodeId);
-        setNodes(prev =>
-          prev.map(n =>
-            n.id === entry.nodeId
-              ? { ...n, state: matches.has(entry.nodeId) ? "matched" : "visited" }
-              : n
-          )
-        );
-        setLog(prev => [
-          ...prev,
-          { step: entry.step, id: entry.nodeId, matched: entry.matched },
-        ]);
-        replayRef.current = window.setTimeout(step, speed);
+      replayDataRef.current = {
+        log: resp.log.map(entry => ({ step: entry.step, nodeId: entry.nodeId, matched: entry.matched })),
+        matches: new Set(resp.matches),
       };
+      playbackIndexRef.current = 0;
+      playbackStartRef.current = runStart;
 
-      step();
+      if (resp.log.length === 0) {
+        finishPlayback();
+        abortRef.current = null;
+        return;
+      }
+
+      schedulePlayback();
     } catch (e) {
       if (runIdRef.current !== runId) return;
       if (!(e instanceof Error && e.name === "AbortError")) {
@@ -144,6 +235,8 @@ export default function PlaygroundLayout() {
       }
     }
   };
+
+  const canControlPlayback = (replayDataRef.current?.log.length ?? 0) > 0;
 
   return (
     <div className="app-shell">
@@ -169,7 +262,20 @@ export default function PlaygroundLayout() {
             focusNodeId={activeNodeId}
           />
           {stats && <StatsCard log={log} stats={stats} elapsedMs={elapsedMs ?? undefined} running={running} mouseContainer={mouseRef} />}
-          <FloatingControls speed={speed} setSpeed={setSpeed} mouseContainer={mouseRef} />
+          <FloatingControls
+            speed={speed}
+            setSpeed={setSpeed}
+            running={running}
+            canControlPlayback={canControlPlayback}
+            onReplay={onReplayPlayback}
+            onPlay={onPlayPlayback}
+            onPause={onPausePlayback}
+            onNext={onNextStep}
+            onZoomOut={() => canvasRef.current?.zoomOut()}
+            onZoomIn={() => canvasRef.current?.zoomIn()}
+            onResetView={() => canvasRef.current?.resetView()}
+            mouseContainer={mouseRef}
+          />
           {error && (
             <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-lg z-20 max-w-md">
               {error}
