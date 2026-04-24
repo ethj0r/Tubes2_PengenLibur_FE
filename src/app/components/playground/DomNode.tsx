@@ -15,6 +15,10 @@ export default function DomNode({ node }: Props) {
     node.state === "visited" ? "is-visited" :
     "";
 
+  const secondary = node.isText
+    ? node.text || "(empty text)"
+    : (node.cls ? `.${node.cls}` : node.id);
+
   return (
     <div
       className={`dom-node ${stateClass}`}
@@ -42,7 +46,7 @@ export default function DomNode({ node }: Props) {
         {node.tag}
       </span>
       <span className="node-meta" style={{ fontSize: 10 }}>
-        {node.cls ? `.${node.cls}` : node.id}
+        {secondary}
       </span>
     </div>
   );

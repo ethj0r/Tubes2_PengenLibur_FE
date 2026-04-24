@@ -4,6 +4,8 @@ export type DomNode = {
   id: string;
   tag: string;
   cls?: string;
+  isText?: boolean;
+  text?: string;
   x: number;
   y: number;
   state: NodeState;

@@ -15,6 +15,16 @@ export type LayoutResult = {
   height: number;
 };
 
+function shortText(input?: string): string | undefined {
+  if (!input) return undefined;
+  
+  const normalized = input.replace(/\s+/g, " ").trim();
+  if (!normalized) return undefined;
+
+  // batas maks 21 karakter + ...
+  return normalized.length > 24 ? `${normalized.slice(0, 21)}...` : normalized;
+}
+
 function firstClass(attrs: ApiNode["attributes"]): string | undefined {
   const cls = attrs.find(a => a.name === "class")?.value;
   if (!cls) return undefined;
@@ -24,29 +34,28 @@ function firstClass(attrs: ApiNode["attributes"]): string | undefined {
 export function layoutTree(root: ApiNode): LayoutResult {
   const nodes: DomNode[] = [];
   const edges: [string, string][] = [];
-  const pos: Record<string, { x: number; y: number }> = {};
   let leafIdx = 0;
 
   function walk(node: ApiNode, depth: number): number {
-    const visibleChildren = node.children.filter(c => !c.isText);
+    const layoutChildren = node.children;
 
     let x: number;
-    if (visibleChildren.length === 0) {
+    if (layoutChildren.length === 0) {
       x = X_OFFSET + leafIdx * LEAF_STEP;
       leafIdx++;
     } else {
-      const xs = visibleChildren.map(c => walk(c, depth + 1));
+      const xs = layoutChildren.map(c => walk(c, depth + 1));
       x = (xs[0] + xs[xs.length - 1]) / 2;
     }
 
-    pos[node.id] = { x, y: Y_OFFSET + depth * LEVEL_Y };
-
-    for (const c of visibleChildren) edges.push([node.id, c.id]);
+    for (const c of layoutChildren) edges.push([node.id, c.id]);
 
     nodes.push({
       id: node.id,
-      tag: node.tag || "#text",
-      cls: firstClass(node.attributes),
+      tag: node.isText ? "text" : node.tag,
+      cls: node.isText ? undefined : firstClass(node.attributes),
+      isText: node.isText,
+      text: node.isText ? shortText(node.text) : undefined,
       x,
       y: Y_OFFSET + depth * LEVEL_Y,
       state: "idle",
@@ -55,7 +64,7 @@ export function layoutTree(root: ApiNode): LayoutResult {
     return x;
   }
 
-  if (!root.isText) walk(root, 0);
+  walk(root, 0);
 
   let maxX = 0, maxY = 0;
   for (const n of nodes) {
