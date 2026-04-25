@@ -1,4 +1,4 @@
-export type NodeState = "idle" | "visited" | "matched";
+export type NodeState = "idle" | "visited" | "matched" | "lca";
 
 export type DomNode = {
   id: string;

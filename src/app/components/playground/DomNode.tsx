@@ -11,13 +11,14 @@ export const NODE_CY = (n: { y: number }) => n.y + NODE_H / 2;
 
 export default function DomNode({ node }: Props) {
   const stateClass =
+    node.state === "lca" ? "is-lca" :
     node.state === "matched" ? "is-matched" :
     node.state === "visited" ? "is-visited" :
     "";
 
   const secondary = node.isText
-    ? node.text || "(empty text)"
-    : (node.cls ? `.${node.cls}` : node.id);
+    ? `${node.text || "(empty text)"} · ${node.id}`
+    : (node.cls ? `.${node.cls} · ${node.id}` : node.id);
 
   return (
     <div

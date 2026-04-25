@@ -46,6 +46,16 @@ export type TraverseRequest = {
   limit: number;
 };
 
+export type LCARequest = {
+  tree: ApiNode;
+  nodeA: string;
+  nodeB: string;
+};
+
+export type LCAResponse = {
+  lcaNodeId: string;
+};
+
 export async function traverse(req: TraverseRequest, signal?: AbortSignal): Promise<TraverseResponse> {
   const res = await fetch(`${API_BASE}/api/v1/traverse`, {
     method: "POST",
@@ -57,5 +67,21 @@ export async function traverse(req: TraverseRequest, signal?: AbortSignal): Prom
     const body = await res.text();
     throw new Error(`traverse failed: ${res.status} ${body}`);
   }
+  return res.json();
+}
+
+export async function computeLCA(req: LCARequest, signal?: AbortSignal): Promise<LCAResponse> {
+  const res = await fetch(`${API_BASE}/api/v1/lca`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+    signal,
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`lca failed: ${res.status} ${body}`);
+  }
+
   return res.json();
 }

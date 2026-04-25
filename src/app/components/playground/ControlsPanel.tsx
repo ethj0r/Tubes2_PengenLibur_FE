@@ -16,10 +16,43 @@ type Props = {
   onRun: () => void;
   onStop: () => void;
   log: LogEntry[];
+  selectedNodeA: string;
+  setSelectedNodeA: (id: string) => void;
+  selectedNodeB: string;
+  setSelectedNodeB: (id: string) => void;
+  nodeOptions: Array<{ id: string; label: string }>;
+  onComputeLCA: () => void;
+  lcaLoading: boolean;
+  lcaNodeId: string | null;
 };
 
 export default function ControlsPanel(props: Props) {
-  const { algo, setAlgo, sourceType, setSourceType, source, setSource, selector, setSelector, limit, setLimit, running, onRun, onStop, log } = props;
+  const {
+    algo,
+    setAlgo,
+    sourceType,
+    setSourceType,
+    source,
+    setSource,
+    selector,
+    setSelector,
+    limit,
+    setLimit,
+    running,
+    onRun,
+    onStop,
+    log,
+    selectedNodeA,
+    setSelectedNodeA,
+    selectedNodeB,
+    setSelectedNodeB,
+    nodeOptions,
+    onComputeLCA,
+    lcaLoading,
+    lcaNodeId,
+  } = props;
+
+  const disableLCA = lcaLoading || running || nodeOptions.length < 2 || !selectedNodeA || !selectedNodeB;
 
   return (
     <aside className="panel-right app-panel flex flex-col z-20">
@@ -109,6 +142,52 @@ export default function ControlsPanel(props: Props) {
             >
               All
             </button>
+          </div>
+        </Field>
+
+        <Field label="Lowest Common Ancestor">
+          <div className="grid grid-cols-1 gap-2">
+            <select
+              className="input-glass input-mono"
+              value={selectedNodeA}
+              onChange={e => setSelectedNodeA(e.target.value)}
+              disabled={nodeOptions.length === 0}
+            >
+              {nodeOptions.length === 0 ? (
+                <option value="">Run traversal first</option>
+              ) : (
+                nodeOptions.map(opt => (
+                  <option key={`a-${opt.id}`} value={opt.id}>{opt.label}</option>
+                ))
+              )}
+            </select>
+
+            <select
+              className="input-glass input-mono"
+              value={selectedNodeB}
+              onChange={e => setSelectedNodeB(e.target.value)}
+              disabled={nodeOptions.length === 0}
+            >
+              {nodeOptions.length === 0 ? (
+                <option value="">Run traversal first</option>
+              ) : (
+                nodeOptions.map(opt => (
+                  <option key={`b-${opt.id}`} value={opt.id}>{opt.label}</option>
+                ))
+              )}
+            </select>
+
+            <button
+              className="btn-accent w-full"
+              onClick={onComputeLCA}
+              disabled={disableLCA}
+            >
+              {lcaLoading ? "Computing LCA..." : "Compute LCA"}
+            </button>
+
+            <p className="text-xs" style={{ color: "var(--muted)" }}>
+              {lcaNodeId ? `LCA Result: ${lcaNodeId}` : "Pilih 2 node untuk mencari LCA"}
+            </p>
           </div>
         </Field>
 

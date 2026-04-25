@@ -8,7 +8,7 @@ import TopBar from "./components/playground/TopBar";
 import FloatingControls from "./components/playground/FloatingControls";
 import StatsCard from "./components/playground/StatsCard";
 import type { Algo, DomNode, LogEntry, SourceType } from "./components/playground/types";
-import { traverse, type TraverseResponse } from "../lib/api";
+import { computeLCA, traverse, type ApiNode, type TraverseResponse } from "../lib/api";
 import { layoutTree } from "../lib/layout";
 
 export default function PlaygroundLayout() {
@@ -28,6 +28,11 @@ export default function PlaygroundLayout() {
   const [stats, setStats] = useState<TraverseResponse["stats"] | null>(null);
   const [elapsedMs, setElapsedMs] = useState<number | null>(null);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+  const [selectedNodeA, setSelectedNodeA] = useState("");
+  const [selectedNodeB, setSelectedNodeB] = useState("");
+  const [lcaNodeId, setLCANodeId] = useState<string | null>(null);
+  const [lcaLoading, setLCALoading] = useState(false);
+  const [currentTree, setCurrentTree] = useState<ApiNode | null>(null);
 
   const canvasRef = useRef<CanvasHandle>(null);
   const mouseRef = useRef<HTMLElement | null>(null);
@@ -46,6 +51,10 @@ export default function PlaygroundLayout() {
   const nodeById: Record<string, DomNode> = Object.fromEntries(
     nodes.map(n => [n.id, n])
   );
+
+  const nodeOptions = nodes
+    .map(n => ({ id: n.id, label: `${n.id} (${n.tag})` }))
+    .sort((a, b) => a.id.localeCompare(b.id));
 
   const clearReplayTimer = useCallback(() => {
     if (replayRef.current != null) {
@@ -125,6 +134,7 @@ export default function PlaygroundLayout() {
     if (playbackIndexRef.current >= replayData.log.length) {
       playbackIndexRef.current = 0;
       setNodes(prev => prev.map(n => ({ ...n, state: "idle" })));
+      setLCANodeId(null);
       setLog([]);
       setActiveNodeId(null);
       setElapsedMs(null);
@@ -142,6 +152,7 @@ export default function PlaygroundLayout() {
     clearReplayTimer();
     playbackIndexRef.current = 0;
     setNodes(prev => prev.map(n => ({ ...n, state: "idle" })));
+    setLCANodeId(null);
     setLog([]);
     setActiveNodeId(null);
     setElapsedMs(null);
@@ -173,6 +184,53 @@ export default function PlaygroundLayout() {
     setActiveNodeId(null);
   }, [clearReplayTimer]);
 
+  const applyLCAHighlight = useCallback((targetNodeId: string | null) => {
+    setNodes(prev =>
+      prev.map(n => {
+        if (targetNodeId && n.id === targetNodeId) {
+          return { ...n, state: "lca" };
+        }
+
+        if (n.state === "lca") {
+          return { ...n, state: "visited" };
+        }
+
+        return n;
+      })
+    );
+  }, []);
+
+  const onComputeLCA = useCallback(async () => {
+    if (!currentTree) {
+      setError("Run traversal first to build a DOM tree for LCA.");
+      return;
+    }
+
+    if (!selectedNodeA || !selectedNodeB) {
+      setError("Please select both node A and node B.");
+      return;
+    }
+
+    setError(null);
+    setLCALoading(true);
+
+    try {
+      const resp = await computeLCA({
+        tree: currentTree,
+        nodeA: selectedNodeA,
+        nodeB: selectedNodeB,
+      });
+
+      setLCANodeId(resp.lcaNodeId);
+      setActiveNodeId(resp.lcaNodeId);
+      applyLCAHighlight(resp.lcaNodeId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLCALoading(false);
+    }
+  }, [applyLCAHighlight, currentTree, selectedNodeA, selectedNodeB]);
+
   const onRun = async () => {
     if (running) return;
     const runId = runIdRef.current + 1;
@@ -183,6 +241,8 @@ export default function PlaygroundLayout() {
     setRunning(true);
     setElapsedMs(null);
     clearReplayTimer();
+    setLCANodeId(null);
+    applyLCAHighlight(null);
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -204,8 +264,15 @@ export default function PlaygroundLayout() {
       setEdges(laidEdges);
       setWorld({ w: width, h: height });
       setStats(resp.stats);
+      setCurrentTree(resp.tree);
       setLog([]);
       setActiveNodeId(null);
+
+      if (laidOut.length > 0) {
+        const sortedIds = laidOut.map(n => n.id).sort((a, b) => a.localeCompare(b));
+        setSelectedNodeA(sortedIds[0]);
+        setSelectedNodeB(sortedIds[Math.min(1, sortedIds.length - 1)]);
+      }
 
       replayDataRef.current = {
         log: resp.log.map(entry => ({ step: entry.step, nodeId: entry.nodeId, matched: entry.matched })),
@@ -299,6 +366,14 @@ export default function PlaygroundLayout() {
         onRun={onRun}
         onStop={stopTraversal}
         log={log}
+        selectedNodeA={selectedNodeA}
+        setSelectedNodeA={setSelectedNodeA}
+        selectedNodeB={selectedNodeB}
+        setSelectedNodeB={setSelectedNodeB}
+        nodeOptions={nodeOptions}
+        onComputeLCA={onComputeLCA}
+        lcaLoading={lcaLoading}
+        lcaNodeId={lcaNodeId}
       />
     </div>
   );
